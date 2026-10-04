@@ -1,0 +1,33 @@
+# docker compose up -d          -> http://127.0.0.1:8808  (first start downloads the ~5 GB model)
+# docker compose logs -f        -> watch progress
+#
+# No NVIDIA GPU? Delete the "deploy:" block and build with TORCH_BACKEND: cpu.
+# Already have the model? Replace the "models" volume with a bind mount, e.g. - ./models:/app/models
+services:
+  voxcpm2:
+    build:
+      context: .
+      args:
+        TORCH_BACKEND: cu128
+    image: voxcpm2-voice-server
+    container_name: voxcpm2-voice-server
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8808:8808"     # remove "127.0.0.1:" to reach it from other machines (then set an API key!)
+    environment:
+      VOXCPM_API_KEY: ${VOXCPM_API_KEY:-}
+      VOXCPM_DEVICE: ${VOXCPM_DEVICE:-auto}
+    volumes:
+      - models:/app/models
+      - data:/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  models:
+  data:

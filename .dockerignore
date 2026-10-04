@@ -1,0 +1,16 @@
+.git
+.github
+.venv
+venv
+__pycache__
+*.pyc
+models/*
+!models/README.md
+data
+outputs
+smoke_out
+.env
+*.log
+*.bak-*
+integrations/open_webui/open-webui-tts.env
+integrations/claude_code/hook_config.json

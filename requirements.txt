@@ -1,0 +1,6 @@
+# PyTorch (torch + torchaudio) is installed separately by the install scripts so the right build
+# for your hardware is chosen (CUDA / ROCm / Apple MPS / CPU). See install-*.{ps1,sh}.
+voxcpm>=2.0.3,<3
+soundfile>=0.12.1
+numpy>=1.24
+huggingface_hub>=0.23

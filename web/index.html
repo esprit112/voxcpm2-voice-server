@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoxCPM2 Voice Server</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #0d0f17; --bg2: #141826; --card: #1a1f30; --card2: #222842; --line: #2c3352;
+    --text: #e8ebf7; --muted: #9aa3c4; --accent: #7c5cff; --accent2: #2ec4b6; --danger: #ff5c7a;
+    --ok: #3ddc97; --warn: #ffb547; --radius: 14px; --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f5fb; --bg2: #eceef8; --card: #ffffff; --card2: #f3f4fb; --line: #dde1ef;
+    --text: #1b1f33; --muted: #5d6585; --shadow: 0 8px 24px rgba(30,40,90,.10);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--font); }
+  body { min-height: 100vh; background: radial-gradient(1200px 600px at 10% -10%, rgba(124,92,255,.18), transparent 60%),
+         radial-gradient(900px 500px at 110% 10%, rgba(46,196,182,.12), transparent 60%), var(--bg); }
+  a { color: var(--accent2); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 16px; padding: 12px 24px;
+           background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; white-space: nowrap; }
+  .logo svg { width: 30px; height: 30px; }
+  nav { display: flex; gap: 4px; margin-left: 12px; flex-wrap: wrap; }
+  nav button { background: none; border: 0; padding: 8px 14px; border-radius: 10px; color: var(--muted); cursor: pointer; font-weight: 600; }
+  nav button.active, nav button:hover { background: var(--card2); color: var(--text); }
+  .spacer { flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--card);
+          border: 1px solid var(--line); font-size: 13px; color: var(--muted); max-width: 420px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warn); flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 25%, transparent); }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+  .dot.err { background: var(--danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 25%, transparent); }
+  .dot.busy { animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .icon-btn { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; cursor: pointer; }
+  main { max-width: 1280px; margin: 0 auto; padding: 24px; }
+  .tab { display: none; } .tab.active { display: block; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } header { flex-wrap: wrap; } }
+  .card { background: color-mix(in srgb, var(--card) 92%, transparent); border: 1px solid var(--line); border-radius: var(--radius);
+          padding: 18px; box-shadow: var(--shadow); }
+  .card h2 { margin: 0 0 12px; font-size: 16px; }
+  .card h3 { margin: 18px 0 8px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  textarea { width: 100%; min-height: 260px; resize: vertical; background: var(--bg2); border: 1px solid var(--line); border-radius: 12px;
+             padding: 14px; line-height: 1.6; outline: none; }
+  textarea:focus, input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+  input[type=text], input[type=password], input[type=number], select { width: 100%; background: var(--bg2); border: 1px solid var(--line);
+             border-radius: 10px; padding: 9px 11px; outline: none; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 5px; font-weight: 600; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .row > * { flex: 1; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .chip { background: var(--card2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; cursor: pointer; font-family: var(--mono); }
+  .chip:hover { border-color: var(--accent); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 12px; padding: 11px 18px;
+         background: var(--accent); color: #fff; font-weight: 700; cursor: pointer; transition: transform .05s, filter .2s; }
+  .btn:hover { filter: brightness(1.1); } .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.secondary { background: var(--card2); color: var(--text); border: 1px solid var(--line); }
+  .btn.danger { background: transparent; color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); }
+  .btn.big { width: 100%; padding: 14px; font-size: 16px; }
+  .btn.small { padding: 6px 10px; font-size: 13px; border-radius: 9px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .slider-head { display: flex; justify-content: space-between; }
+  .slider-head span { font-family: var(--mono); color: var(--text); }
+  details { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 13px; }
+  .check { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; font-size: 13.5px; color: var(--text); cursor: pointer; }
+  .check input { margin-top: 3px; accent-color: var(--accent); }
+  .player { margin-top: 16px; padding: 14px; background: var(--bg2); border-radius: 12px; border: 1px solid var(--line); }
+  .player audio { width: 100%; }
+  .meta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; font-size: 12.5px; color: var(--muted); font-family: var(--mono); }
+  .progress { height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; margin-top: 12px; display: none; }
+  .progress.on { display: block; }
+  .progress i { display: block; height: 100%; width: 35%; background: linear-gradient(90deg, var(--accent), var(--accent2)); animation: slide 1.2s infinite ease-in-out; }
+  @keyframes slide { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+  .history { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; max-height: 420px; overflow: auto; }
+  .hist { display: grid; grid-template-columns: 1fr auto; gap: 6px; background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; }
+  .hist .t { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist .s { font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
+  .hist .a { display: flex; gap: 6px; align-items: center; grid-row: span 2; }
+  .voices { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .voice { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .voice.sel { border-color: var(--accent); }
+  .voice b { font-size: 15px; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--card2); color: var(--muted); border: 1px solid var(--line); margin-right: 4px; }
+  .badge.cloned { color: var(--accent2); } .badge.designed { color: var(--accent); }
+  .voice .actions { display: flex; gap: 6px; margin-top: auto; padding-top: 6px; flex-wrap: wrap; }
+  pre { background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; overflow: auto; font: 12.5px/1.5 var(--mono); margin: 6px 0 0; position: relative; }
+  .copy { position: absolute; top: 8px; right: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--bg2); padding: 1px 5px; border-radius: 5px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(120px); background: var(--card); border: 1px solid var(--line);
+           padding: 12px 18px; border-radius: 12px; box-shadow: var(--shadow); transition: transform .25s; z-index: 50; max-width: 90vw; }
+  .toast.on { transform: translateX(-50%) translateY(0); }
+  .toast.err { border-color: var(--danger); }
+  .rec { display: inline-flex; align-items: center; gap: 8px; }
+  .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); animation: pulse 1s infinite; display: none; }
+  .rec.on .rec-dot { display: inline-block; }
+  .notice { background: color-mix(in srgb, var(--warn) 12%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+            padding: 10px 12px; border-radius: 10px; font-size: 13.5px; margin-bottom: 14px; display: none; }
+  .notice.on { display: block; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+  footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 30px 0 40px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#7c5cff"/><path d="M14 34h6l4-12 8 26 6-18 4 8h8" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    VoxCPM2 Voice Server
+  </div>
+  <nav>
+    <button data-tab="speak" class="active">Speak</button>
+    <button data-tab="voices">Voices</button>
+    <button data-tab="api">API &amp; Agents</button>
+    <button data-tab="system">System</button>
+  </nav>
+  <div class="spacer"></div>
+  <span class="pill" id="status" title="Engine status"><span class="dot busy" id="statusDot"></span><span id="statusText">Connecting…</span></span>
+  <button class="icon-btn" id="themeBtn" title="Light / dark">◐</button>
+  <button class="icon-btn" id="keyBtn" title="API key">🔑</button>
+</header>
+
+<main>
+  <div class="notice" id="notice"></div>
+
+  <!-- ============================== SPEAK ============================== -->
+  <section class="tab active" id="tab-speak">
+    <div class="grid">
+      <div class="card">
+        <h2>Text</h2>
+        <textarea id="text" spellcheck="true" placeholder="Type or paste what you want spoken…">Welcome to the VoxCPM2 Voice Server. Everything you hear is generated on your own computer. [excited] Pretty cool, right? [pause:400ms] [whisper] And nothing ever leaves this machine.</textarea>
+        <div class="row" style="margin-top:6px">
+          <span class="muted" id="count">0 characters</span>
+          <span class="muted" style="text-align:right">Tip: <b>Ctrl+Enter</b> speaks</span>
+        </div>
+        <h3>Emotion &amp; pause markers <span class="muted" style="text-transform:none;letter-spacing:0">(click to insert at the cursor)</span></h3>
+        <div class="chips" id="markerChips"></div>
+        <p class="muted">A marker changes the delivery from that point on. <code>[normal]</code> returns to the emotion chosen on the right. Any other words in brackets work too, e.g. <code>[slow and mysterious]</code>.</p>
+        <div class="row" style="margin-top:6px">
+          <button class="btn secondary small" id="sampleBtn" style="flex:none">Sample text</button>
+          <button class="btn secondary small" id="clearBtn" style="flex:none">Clear</button>
+          <span></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Voice &amp; delivery</h2>
+        <label for="voice">Voice</label>
+        <div class="row">
+          <select id="voice"></select>
+          <button class="btn secondary small" id="previewBtn" style="flex:none" title="Hear this voice's reference">▶</button>
+        </div>
+        <label for="emotion">Emotion</label>
+        <select id="emotion">
+          <option value="neutral">Neutral (natural)</option>
+          <option>happy</option><option>cheerful</option><option>excited</option><option>calm</option>
+          <option>sad</option><option>tired</option><option>angry</option><option>frustrated</option>
+          <option>concerned</option><option>fearful</option><option>surprised</option><option>empathetic</option>
+          <option>authoritative</option><option>dramatic</option><option>whisper</option>
+        </select>
+        <label for="style">Style instruction <span class="muted">(optional)</span></label>
+        <input type="text" id="style" placeholder="e.g. speaking slowly, like telling a bedtime story">
+        <label><span class="slider-head"><span style="font-family:var(--font);color:var(--muted)">Speed</span><span id="speedVal">1.00×</span></span></label>
+        <input type="range" id="speed" min="0.5" max="2" step="0.05" value="1">
+        <label><span class="slider-head"><span style="font-family:var(--font);color:var(--muted)">Pitch</span><span id="pitchVal">0 st</span></span></label>
+        <input type="range" id="pitch" min="-6" max="6" step="0.5" value="0">
+        <details>
+          <summary>Advanced</summary>
+          <label><span class="slider-head"><span style="font-family:var(--font);color:var(--muted)">Quality (diffusion steps)</span><span id="stepsVal">10</span></span></label>
+          <input type="range" id="steps" min="4" max="30" step="1" value="10">
+          <label><span class="slider-head"><span style="font-family:var(--font);color:var(--muted)">Guidance (CFG)</span><span id="cfgVal">2.0</span></span></label>
+          <input type="range" id="cfg" min="1" max="4" step="0.1" value="2">
+          <label for="format">Download format</label>
+          <select id="format"><option value="wav">WAV (lossless)</option><option value="mp3">MP3</option><option value="flac">FLAC</option><option value="opus">Opus (Ogg)</option></select>
+        </details>
+        <label class="check"><input type="checkbox" id="stream"> <span>Stream (start hearing audio sooner; speed &amp; pitch are ignored)</span></label>
+        <div style="margin-top:16px" class="row">
+          <button class="btn big" id="speakBtn">🔊 Speak</button>
+          <button class="btn danger" id="stopBtn" style="flex:none;display:none">■ Stop</button>
+        </div>
+        <div class="progress" id="progress"><i></i></div>
+        <div class="muted" id="busyText" style="margin-top:6px"></div>
+        <div class="player" id="player" style="display:none">
+          <audio id="audio" controls></audio>
+          <div class="meta" id="meta"></div>
+          <div style="margin-top:10px"><a class="btn secondary small" id="download" download>⬇ Download</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="row"><h2 style="margin:0">This session</h2><span class="muted" style="text-align:right">Clips are kept in memory until you close the tab</span></div>
+      <div class="history" id="history"><div class="muted">Nothing generated yet.</div></div>
+    </div>
+  </section>
+
+  <!-- ============================== VOICES ============================== -->
+  <section class="tab" id="tab-voices">
+    <div class="card">
+      <div class="row"><h2 style="margin:0">Voice library</h2>
+        <div style="text-align:right"><button class="btn secondary small" id="restoreBtn">Restore hidden presets</button></div></div>
+      <p class="muted">Every voice speaks from one reference recording, so it sounds the same in every clip. Presets ship with the server; your own voices are stored in <code>data/voices</code>.</p>
+      <div class="voices" id="voiceGrid"></div>
+    </div>
+
+    <div class="two" style="margin-top:20px">
+      <div class="card">
+        <h2>✨ Design a voice from a description</h2>
+        <label for="dName">Name</label>
+        <input type="text" id="dName" placeholder="Captain Morrow">
+        <label for="dDesc">Describe the voice (age, gender, accent, texture, mood)</label>
+        <textarea id="dDesc" style="min-height:110px" placeholder="An old Scottish sea captain with a gravelly, weathered voice, warm but stern, speaking slowly"></textarea>
+        <div class="chips" id="designIdeas"></div>
+        <label for="dScript">Reference sentence <span class="muted">(optional; what the voice says while being designed)</span></label>
+        <input type="text" id="dScript" placeholder="Leave empty for a neutral calibration sentence">
+        <p class="muted">Design runs the model once (seconds on a GPU, a few minutes on CPU). Not happy with the result? Delete it and design again: every run is a new person.</p>
+        <button class="btn" id="designBtn">Create voice</button>
+        <span class="muted" id="designStatus" style="margin-left:10px"></span>
+      </div>
+
+      <div class="card">
+        <h2>🎙 Clone a voice from a recording</h2>
+        <label for="cName">Name</label>
+        <input type="text" id="cName" placeholder="My voice">
+        <label>Recording (5–30 seconds of clear speech, one speaker, no music)</label>
+        <div class="row">
+          <input type="file" id="cFile" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.webm">
+          <button class="btn secondary small rec" id="recBtn" style="flex:none"><span class="rec-dot"></span><span id="recLabel">● Record</span></button>
+        </div>
+        <audio id="cPreview" controls style="width:100%;margin-top:8px;display:none"></audio>
+        <label for="cText">Exact transcript of the recording <span class="muted">(optional, improves likeness)</span></label>
+        <textarea id="cText" style="min-height:70px" placeholder="Type exactly what is said in the recording"></textarea>
+        <label class="check"><input type="checkbox" id="cConsent"> <span>I am this person, or I have their explicit permission to clone their voice. I will not use it to deceive or impersonate.</span></label>
+        <div style="margin-top:12px"><button class="btn" id="cloneBtn">Clone voice</button> <span class="muted" id="cloneStatus" style="margin-left:10px"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== API ============================== -->
+  <section class="tab" id="tab-api">
+    <div class="card">
+      <h2>OpenAI-compatible API</h2>
+      <p class="muted">Anything that can talk to OpenAI's text-to-speech can use this server: point it at the base URL below with any API key (unless you set <code>VOXCPM_API_KEY</code>) and use a voice id from the list.</p>
+      <table>
+        <tr><th style="width:180px">Base URL</th><td><code id="baseUrl"></code></td></tr>
+        <tr><th>Model</th><td><code>voxcpm2</code> (also accepts <code>tts-1</code>, <code>tts-1-hd</code>, <code>gpt-4o-mini-tts</code>)</td></tr>
+        <tr><th>Voices</th><td id="voiceIds"></td></tr>
+        <tr><th>Formats</th><td><code>mp3</code> (default), <code>wav</code>, <code>flac</code>, <code>opus</code>, <code>pcm</code>, <code>aac</code> (needs ffmpeg)</td></tr>
+        <tr><th>Extras</th><td><code>emotion</code>, <code>style</code> / <code>instructions</code>, <code>pitch</code> (semitones), <code>cfg_value</code>, <code>inference_timesteps</code>, and inline <code>[emotion]</code> markers</td></tr>
+      </table>
+      <h3>curl</h3>
+      <pre id="exCurl"></pre>
+      <h3>Python (openai package)</h3>
+      <pre id="exPy"></pre>
+      <h3>JavaScript</h3>
+      <pre id="exJs"></pre>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <h2>AI agent integrations</h2>
+      <p class="muted">Run the integration helper from the server folder: <code>integrate.bat</code> (Windows) or <code>./integrate.sh</code> (Linux/macOS). It shows a menu, or you can name the runtime directly, e.g. <code>./integrate.sh claude-code</code>.</p>
+      <table>
+        <tr><th>Runtime</th><th>How it connects</th><th>Command</th></tr>
+        <tr><td>Hermes Agent</td><td>Native TTS provider plugin (voice picker in Settings)</td><td><code>integrate hermes</code></td></tr>
+        <tr><td>OpenClaw</td><td>OpenAI-compatible TTS provider (<code>messages.tts</code>)</td><td><code>integrate openclaw</code></td></tr>
+        <tr><td>Claude Code</td><td>MCP server (speak / save tools) + optional "read replies aloud" hook</td><td><code>integrate claude-code</code></td></tr>
+        <tr><td>OpenAI Codex CLI</td><td>MCP server in <code>~/.codex/config.toml</code></td><td><code>integrate codex</code></td></tr>
+        <tr><td>Gemini CLI</td><td>MCP server in <code>~/.gemini/settings.json</code></td><td><code>integrate gemini-cli</code></td></tr>
+        <tr><td>OpenCode</td><td>MCP server in <code>opencode.json</code></td><td><code>integrate opencode</code></td></tr>
+        <tr><td>Claude Desktop / Cursor / Windsurf</td><td>MCP server</td><td><code>integrate mcp-clients</code></td></tr>
+        <tr><td>Open WebUI</td><td>OpenAI-compatible TTS engine</td><td><code>integrate open-webui</code></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================== SYSTEM ============================== -->
+  <section class="tab" id="tab-system">
+    <div class="two">
+      <div class="card">
+        <h2>Engine</h2>
+        <table id="sysTable"></table>
+      </div>
+      <div class="card">
+        <h2>Compute device</h2>
+        <p class="muted">The server picks the fastest device automatically: NVIDIA GPU (CUDA) → Apple Silicon GPU (MPS) → CPU. Switching reloads the model (a few seconds to a minute).</p>
+        <div class="row">
+          <select id="deviceSel"><option value="auto">Automatic</option><option value="cuda">NVIDIA GPU (CUDA)</option><option value="mps">Apple GPU (MPS)</option><option value="cpu">CPU</option></select>
+          <button class="btn secondary" id="deviceBtn" style="flex:none">Switch</button>
+        </div>
+        <h3>Speed</h3>
+        <p class="muted">Real-time factor (RTF) = seconds of computing per second of speech; below 1.0 is faster than real time. Measured on an RTX 3060 (12 GB) without torch.compile: <b>RTF ≈ 1.7</b>. Faster GPUs, fewer diffusion steps or <code>--optimize</code> (torch.compile, CUDA only) lower it; Apple Silicon and CPU are slower. Your own average is shown in the Engine table.</p>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>VoxCPM2 Voice Server · model by <a href="https://huggingface.co/openbmb/VoxCPM2" target="_blank" rel="noopener">OpenBMB</a> (Apache-2.0) · <span id="ver"></span> · Use cloned voices responsibly.</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const state = { voices: [], health: null, busy: false, abort: null, history: [], audioCtx: null, streamNodes: [] };
+const MARKERS = ["[happy]", "[excited]", "[calm]", "[sad]", "[tired]", "[angry]", "[surprised]", "[fearful]", "[dramatic]", "[whisper]", "[normal]", "[pause:500ms]", "[pause:1s]", "[breath]"];
+const SAMPLES = [
+  "The old lighthouse keeper climbed the spiral stairs one last time. [calm] Below, the sea was silver and still. [pause:600ms] [whisper] Then the light went out.",
+  "Good morning! Here's your briefing. [authoritative] Three meetings today, the first at nine. [cheerful] And yes, there is cake in the kitchen.",
+  "I can't believe it worked. [excited] It actually worked! [pause:300ms] [tired] Now, if you'll excuse me, I'm going to sleep for a week.",
+];
+const DESIGN_IDEAS = [
+  "A cheerful young Irish woman with a quick, musical voice",
+  "A deep-voiced American radio DJ, smooth and late-night",
+  "An elderly British professor, dry and precise, slightly hoarse",
+  "A calm Australian nature-documentary narrator in his fifties",
+  "A playful teenage boy with a bright, energetic voice",
+];
+
+// ---------------------------------------------------------------- utilities
+function toast(msg, isErr = false, ms = 4200) {
+  const t = $("toast"); t.textContent = msg; t.className = "toast on" + (isErr ? " err" : "");
+  clearTimeout(t._h); t._h = setTimeout(() => (t.className = "toast"), ms);
+}
+function apiKey() { return localStorage.getItem("voxcpm_api_key") || ""; }
+function headers(json = true) {
+  const h = {}; if (json) h["Content-Type"] = "application/json";
+  if (apiKey()) h["Authorization"] = "Bearer " + apiKey();
+  return h;
+}
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { ...headers(opts.body !== undefined), ...(opts.headers || {}) } });
+  if (res.status === 401) { askKey(true); throw new Error("This server needs an API key."); }
+  if (!res.ok) {
+    let msg = res.status + " " + res.statusText;
+    try { const j = await res.json(); msg = (j.error && (j.error.message || j.error)) || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  return res;
+}
+function askKey(required) {
+  const k = prompt((required ? "This server requires an API key.\n" : "") + "API key (leave empty to clear):", apiKey());
+  if (k === null) return;
+  if (k.trim()) localStorage.setItem("voxcpm_api_key", k.trim()); else localStorage.removeItem("voxcpm_api_key");
+  refreshVoices();
+}
+function fmtSecs(s) { return s < 60 ? s.toFixed(1) + "s" : Math.floor(s / 60) + "m " + Math.round(s % 60) + "s"; }
+function wavFromFloat32(samples, sr) {
+  const buf = new ArrayBuffer(44 + samples.length * 2), v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + samples.length * 2, true); w(8, "WAVE"); w(12, "fmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true);
+  v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) { const x = Math.max(-1, Math.min(1, samples[i])); v.setInt16(44 + i * 2, x < 0 ? x * 32768 : x * 32767, true); }
+  return new Blob([buf], { type: "audio/wav" });
+}
+function blobToBase64(blob) {
+  return new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = fail; r.readAsDataURL(blob); });
+}
+
+// ---------------------------------------------------------------- tabs & theme
+document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+function showTab(name) {
+  document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.id === "tab-" + name));
+  localStorage.setItem("voxcpm_tab", name);
+}
+function applyTheme(t) { document.documentElement.dataset.theme = t; localStorage.setItem("voxcpm_theme", t); }
+$("themeBtn").onclick = () => applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+applyTheme(localStorage.getItem("voxcpm_theme") || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
+$("keyBtn").onclick = () => askKey(false);
+
+// ---------------------------------------------------------------- status
+async function pollHealth() {
+  try {
+    const res = await fetch("/health"); const h = await res.json(); state.health = h;
+    const dot = $("statusDot"), txt = $("statusText");
+    const label = { ready: "Ready", loading: "Loading model…", downloading: "Downloading model (~5 GB)…", starting: "Starting…", no_model: "Model missing", error: "Error" }[h.status] || h.status;
+    dot.className = "dot" + (h.status === "ready" ? " ok" : (h.status === "error" || h.status === "no_model") ? " err" : " busy");
+    txt.textContent = label + (h.status === "ready" ? " · " + h.device_label : "");
+    $("status").title = h.error || label;
+    const n = $("notice");
+    if (h.error) { n.textContent = "⚠ " + h.error; n.classList.add("on"); }
+    else if (h.status === "downloading") { n.textContent = "First start: downloading the VoxCPM2 model (about 5 GB). This happens once; speech becomes available when it finishes."; n.classList.add("on"); }
+    else n.classList.remove("on");
+    $("ver").textContent = "v" + h.version;
+    renderSystem(h);
+  } catch (e) {
+    $("statusDot").className = "dot err"; $("statusText").textContent = "Server offline";
+  }
+}
+function renderSystem(h) {
+  const rows = [
+    ["Status", h.status], ["Device", h.device_label || h.device], ["Sample rate", (h.sample_rate || 48000) + " Hz"],
+    ["PyTorch", (h.gpu && h.gpu.torch) || "–"], ["torch.compile", h.optimized ? "on" : "off"],
+    ["VRAM in use", h.gpu && h.gpu.vram_total_mb ? `${h.gpu.vram_used_mb} / ${h.gpu.vram_total_mb} MB` : "–"],
+    ["Model load time", h.load_seconds ? h.load_seconds + " s" : "–"],
+    ["Requests served", h.stats.requests], ["Audio generated", fmtSecs(h.stats.audio_seconds)],
+    ["Average RTF", h.stats.audio_seconds ? (h.stats.compute_seconds / h.stats.audio_seconds).toFixed(2) : "–"],
+    ["Model folder", h.model_dir], ["API key required", h.auth_required ? "yes" : "no"],
+  ];
+  const tbl = $("sysTable"); tbl.textContent = "";
+  for (const [k, v] of rows) { const tr = tbl.insertRow(); tr.insertCell().textContent = k; const td = tr.insertCell(); td.textContent = v; td.style.wordBreak = "break-all"; }
+  if (document.activeElement !== $("deviceSel")) $("deviceSel").value = h.preferred_device && h.preferred_device.startsWith("cuda") ? "cuda" : (h.preferred_device || "auto");
+}
+$("deviceBtn").onclick = async () => {
+  try { const r = await api("/api/device", { method: "POST", body: JSON.stringify({ device: $("deviceSel").value }) }); toast((await r.json()).message); }
+  catch (e) { toast(e.message, true); }
+};
+
+// ---------------------------------------------------------------- voices
+async function refreshVoices() {
+  try {
+    const data = await (await api("/api/voices")).json();
+    state.voices = data.voices;
+    const sel = $("voice"), keep = sel.value || localStorage.getItem("voxcpm_voice") || data.default;
+    sel.textContent = "";
+    const groups = { preset: "Presets", designed: "Designed by you", cloned: "Cloned by you" };
+    for (const kind of Object.keys(groups)) {
+      const vs = data.voices.filter((v) => v.kind === kind); if (!vs.length) continue;
+      const og = document.createElement("optgroup"); og.label = groups[kind];
+      for (const v of vs) { const o = document.createElement("option"); o.value = v.id; o.textContent = v.name + (v.gender ? ` (${v.gender})` : ""); og.appendChild(o); }
+      sel.appendChild(og);
+    }
+    sel.value = data.voices.some((v) => v.id === keep) ? keep : data.default;
+    renderVoiceGrid(); renderApi();
+  } catch (e) { toast("Could not load voices: " + e.message, true); }
+}
+function renderVoiceGrid() {
+  const grid = $("voiceGrid"); grid.textContent = "";
+  for (const v of state.voices) {
+    const card = document.createElement("div"); card.className = "voice" + (v.id === $("voice").value ? " sel" : "");
+    const title = document.createElement("b"); title.textContent = v.name; card.appendChild(title);
+    const badges = document.createElement("div");
+    for (const b of [v.kind, v.gender, v.language].filter(Boolean)) { const s = document.createElement("span"); s.className = "badge " + b; s.textContent = b; badges.appendChild(s); }
+    card.appendChild(badges);
+    const d = document.createElement("div"); d.className = "muted"; d.textContent = v.description || v.style || ""; card.appendChild(d);
+    const id = document.createElement("code"); id.textContent = v.id; id.style.fontSize = "11px"; card.appendChild(id);
+    const act = document.createElement("div"); act.className = "actions";
+    const mk = (label, cls, fn) => { const b = document.createElement("button"); b.className = "btn small " + cls; b.textContent = label; b.onclick = fn; act.appendChild(b); };
+    mk("▶ Preview", "secondary", () => previewVoice(v.id));
+    mk("Use", "secondary", () => { $("voice").value = v.id; localStorage.setItem("voxcpm_voice", v.id); renderVoiceGrid(); showTab("speak"); });
+    mk(v.kind === "preset" ? "Hide" : "Delete", "danger", () => deleteVoice(v));
+    card.appendChild(act); grid.appendChild(card);
+  }
+}
+let previewAudio = null;
+async function previewVoice(id) {
+  try {
+    toast("Loading the voice reference… (first use of a preset may take a moment)");
+    const blob = await (await api(`/api/voices/${encodeURIComponent(id)}/reference.wav`)).blob();
+    if (previewAudio) previewAudio.pause();
+    previewAudio = new Audio(URL.createObjectURL(blob)); previewAudio.play();
+  } catch (e) { toast(e.message, true); }
+}
+async function deleteVoice(v) {
+  const verb = v.kind === "preset" ? "Hide the preset" : "Delete";
+  if (!confirm(`${verb} "${v.name}"?` + (v.kind === "preset" ? "" : " Its reference recording is removed too."))) return;
+  try { await api(`/api/voices/${encodeURIComponent(v.id)}`, { method: "DELETE" }); toast(`${v.name} removed`); refreshVoices(); }
+  catch (e) { toast(e.message, true); }
+}
+$("restoreBtn").onclick = async () => { try { const r = await (await api("/api/voices/restore", { method: "POST", body: "{}" })).json(); toast(r.restored.length ? "Restored " + r.restored.length + " preset(s)" : "No hidden presets"); refreshVoices(); } catch (e) { toast(e.message, true); } };
+$("voice").onchange = () => { localStorage.setItem("voxcpm_voice", $("voice").value); renderVoiceGrid(); };
+$("previewBtn").onclick = () => previewVoice($("voice").value);
+
+// design
+for (const idea of DESIGN_IDEAS) { const c = document.createElement("span"); c.className = "chip"; c.style.fontFamily = "var(--font)"; c.textContent = idea; c.onclick = () => ($("dDesc").value = idea); $("designIdeas").appendChild(c); }
+$("designBtn").onclick = async () => {
+  const description = $("dDesc").value.trim();
+  if (description.length < 8) return toast("Describe the voice in a sentence first.", true);
+  $("designBtn").disabled = true; $("designStatus").textContent = "Designing… (the model is creating a new person)";
+  try {
+    const r = await (await api("/api/voices/design", { method: "POST", body: JSON.stringify({ name: $("dName").value.trim() || "Designed voice", description, transcript: $("dScript").value.trim() }) })).json();
+    toast(`Created "${r.voice.name}" (${r.reference.duration}s reference)`);
+    $("designStatus").textContent = ""; await refreshVoices(); $("voice").value = r.voice.id; renderVoiceGrid(); previewVoice(r.voice.id);
+  } catch (e) { toast(e.message, true); $("designStatus").textContent = ""; }
+  finally { $("designBtn").disabled = false; }
+};
+
+// clone: any input -> decoded in the browser -> mono 16-bit WAV
+let cloneBlob = null, recorder = null, recChunks = [], recTimer = null;
+async function toMonoWav(blob) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  try {
+    const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+    const mono = new Float32Array(buf.length);
+    for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) mono[i] += d[i] / buf.numberOfChannels; }
+    return { wav: wavFromFloat32(mono, buf.sampleRate), seconds: buf.duration };
+  } finally { ctx.close(); }
+}
+function setCloneBlob(blob) { cloneBlob = blob; const a = $("cPreview"); a.src = URL.createObjectURL(blob); a.style.display = "block"; }
+$("cFile").onchange = () => { const f = $("cFile").files[0]; if (f) setCloneBlob(f); };
+$("recBtn").onclick = async () => {
+  if (recorder && recorder.state === "recording") { recorder.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true } });
+    recChunks = []; recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = (e) => e.data.size && recChunks.push(e.data);
+    recorder.onstop = () => { stream.getTracks().forEach((t) => t.stop()); clearInterval(recTimer); $("recBtn").classList.remove("on"); $("recLabel").textContent = "● Record"; setCloneBlob(new Blob(recChunks, { type: recorder.mimeType })); };
+    recorder.start(); const t0 = Date.now(); $("recBtn").classList.add("on");
+    recTimer = setInterval(() => { const s = (Date.now() - t0) / 1000; $("recLabel").textContent = `Stop (${s.toFixed(0)}s)`; if (s >= 30) recorder.stop(); }, 250);
+  } catch (e) { toast("Microphone unavailable: " + e.message + " (recording needs http://localhost or https)", true, 7000); }
+};
+$("cloneBtn").onclick = async () => {
+  if (!cloneBlob) return toast("Choose or record a recording first.", true);
+  if (!$("cConsent").checked) return toast("Please confirm you have permission to clone this voice.", true);
+  $("cloneBtn").disabled = true; $("cloneStatus").textContent = "Preparing audio…";
+  try {
+    const { wav, seconds } = await toMonoWav(cloneBlob);
+    if (seconds < 3) throw new Error("The recording is too short; use 5–30 seconds.");
+    $("cloneStatus").textContent = "Uploading…";
+    const r = await (await api("/api/voices/clone", { method: "POST", body: JSON.stringify({ name: $("cName").value.trim() || "Cloned voice", audio_base64: await blobToBase64(wav), transcript: $("cText").value.trim() }) })).json();
+    toast(`Cloned "${r.voice.name}" from ${r.reference_seconds}s of audio`);
+    await refreshVoices(); $("voice").value = r.voice.id; renderVoiceGrid();
+  } catch (e) { toast(e.message, true); }
+  finally { $("cloneBtn").disabled = false; $("cloneStatus").textContent = ""; }
+};
+
+// ---------------------------------------------------------------- speak
+for (const m of MARKERS) { const c = document.createElement("span"); c.className = "chip"; c.textContent = m; c.onclick = () => insertAtCursor(m + " "); $("markerChips").appendChild(c); }
+function insertAtCursor(s) { const t = $("text"), a = t.selectionStart, b = t.selectionEnd; t.setRangeText(s, a, b, "end"); t.focus(); updateCount(); }
+function updateCount() { const n = $("text").value.length; $("count").textContent = n.toLocaleString() + " characters"; localStorage.setItem("voxcpm_text", $("text").value); }
+$("text").addEventListener("input", updateCount);
+$("text").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); speak(); } });
+$("sampleBtn").onclick = () => { $("text").value = SAMPLES[Math.floor(Math.random() * SAMPLES.length)]; updateCount(); };
+$("clearBtn").onclick = () => { $("text").value = ""; updateCount(); $("text").focus(); };
+for (const [id, out, f] of [["speed", "speedVal", (v) => (+v).toFixed(2) + "×"], ["pitch", "pitchVal", (v) => (+v > 0 ? "+" : "") + v + " st"], ["steps", "stepsVal", (v) => v], ["cfg", "cfgVal", (v) => (+v).toFixed(1)]]) {
+  const el = $(id); const upd = () => { $(out).textContent = f(el.value); localStorage.setItem("voxcpm_" + id, el.value); };
+  el.value = localStorage.getItem("voxcpm_" + id) || el.value; el.addEventListener("input", upd); upd();
+}
+for (const id of ["emotion", "format"]) { const el = $(id); el.value = localStorage.getItem("voxcpm_" + id) || el.value; el.onchange = () => localStorage.setItem("voxcpm_" + id, el.value); }
+$("stream").checked = localStorage.getItem("voxcpm_stream") === "1";
+$("stream").onchange = () => localStorage.setItem("voxcpm_stream", $("stream").checked ? "1" : "0");
+if (localStorage.getItem("voxcpm_text") !== null) $("text").value = localStorage.getItem("voxcpm_text");
+updateCount();
+
+function setBusy(on, label = "") {
+  state.busy = on; $("speakBtn").disabled = on; $("stopBtn").style.display = on ? "" : "none";
+  $("progress").classList.toggle("on", on); $("busyText").textContent = label;
+  clearInterval(state.tick);
+  if (on) { const t0 = Date.now(); state.tick = setInterval(() => ($("busyText").textContent = `${label} ${((Date.now() - t0) / 1000).toFixed(0)}s`), 500); }
+}
+function speechBody() {
+  return { model: "voxcpm2", input: $("text").value, voice: $("voice").value, emotion: $("emotion").value, style: $("style").value.trim(),
+           speed: +$("speed").value, pitch: +$("pitch").value, inference_timesteps: +$("steps").value, cfg_value: +$("cfg").value, response_format: $("format").value };
+}
+async function speak() {
+  if (state.busy) return;
+  const body = speechBody();
+  if (!body.input.trim()) return toast("Type some text first.", true);
+  if (state.health && state.health.status !== "ready") toast("The model is still " + state.health.status + "; your request will start when it is ready.");
+  state.abort = new AbortController();
+  const t0 = performance.now();
+  try {
+    if ($("stream").checked) await speakStreaming(body, t0);
+    else {
+      setBusy(true, "Generating…");
+      const res = await api("/v1/audio/speech", { method: "POST", body: JSON.stringify(body), signal: state.abort.signal });
+      const blob = await res.blob();
+      const fmt = res.headers.get("X-Audio-Format") || body.response_format;
+      showResult(blob, fmt, +res.headers.get("X-Audio-Duration"), (performance.now() - t0) / 1000, body);
+    }
+  } catch (e) { if (e.name !== "AbortError") toast(e.message, true, 7000); }
+  finally { setBusy(false); state.abort = null; }
+}
+async function speakStreaming(body, t0) {
+  setBusy(true, "Streaming…");
+  const res = await api("/api/stream", { method: "POST", body: JSON.stringify(body), signal: state.abort.signal });
+  const sr = +res.headers.get("X-Sample-Rate") || 48000;
+  if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const ctx = state.audioCtx; await ctx.resume();
+  let playAt = ctx.currentTime + 0.15, leftover = new Uint8Array(0), all = [], first = true;
+  const reader = res.body.getReader();
+  while (true) {
+    const { done, value } = await reader.read(); if (done) break;
+    const bytes = new Uint8Array(leftover.length + value.length); bytes.set(leftover); bytes.set(value, leftover.length);
+    const usable = bytes.length - (bytes.length % 4); leftover = bytes.slice(usable);
+    if (!usable) continue;
+    const samples = new Float32Array(bytes.buffer.slice(0, usable)); all.push(samples);
+    if (first) { first = false; $("busyText").textContent = `First audio after ${((performance.now() - t0) / 1000).toFixed(1)}s`; }
+    const buf = ctx.createBuffer(1, samples.length, sr); buf.copyToChannel(samples, 0);
+    const node = ctx.createBufferSource(); node.buffer = buf; node.connect(ctx.destination);
+    playAt = Math.max(playAt, ctx.currentTime + 0.02); node.start(playAt); playAt += buf.duration; state.streamNodes.push(node);
+  }
+  const total = all.reduce((n, a) => n + a.length, 0), joined = new Float32Array(total); let off = 0;
+  for (const a of all) { joined.set(a, off); off += a.length; }
+  if (total) showResult(wavFromFloat32(joined, sr), "wav", total / sr, (performance.now() - t0) / 1000, body, true);
+}
+$("stopBtn").onclick = () => {
+  if (state.abort) state.abort.abort();
+  for (const n of state.streamNodes) { try { n.stop(); } catch (_) {} }
+  state.streamNodes = []; setBusy(false); toast("Stopped");
+};
+$("speakBtn").onclick = speak;
+
+function showResult(blob, fmt, duration, elapsed, body, streamed = false) {
+  const url = URL.createObjectURL(blob);
+  const voice = state.voices.find((v) => v.id === body.voice);
+  const name = (voice ? voice.name : body.voice).replace(/[^\w-]+/g, "_");
+  const file = `voxcpm2_${name}_${new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)}.${fmt}`;
+  $("player").style.display = "block";
+  if (!streamed) { $("audio").src = url; $("audio").play().catch(() => {}); } else $("audio").src = url;
+  $("download").href = url; $("download").download = file;
+  const rtf = duration ? (elapsed / duration).toFixed(2) : "–";
+  $("meta").textContent = "";
+  for (const s of [`${duration ? duration.toFixed(1) : "?"}s audio`, `${elapsed.toFixed(1)}s total`, `RTF ${rtf}`, fmt.toUpperCase(), voice ? voice.name : body.voice]) { const sp = document.createElement("span"); sp.textContent = s; $("meta").appendChild(sp); }
+  state.history.unshift({ url, file, text: body.input, voice: voice ? voice.name : body.voice, duration, at: new Date() });
+  state.history = state.history.slice(0, 30); renderHistory();
+}
+function renderHistory() {
+  const h = $("history"); h.textContent = "";
+  if (!state.history.length) { const d = document.createElement("div"); d.className = "muted"; d.textContent = "Nothing generated yet."; h.appendChild(d); return; }
+  for (const item of state.history) {
+    const row = document.createElement("div"); row.className = "hist";
+    const t = document.createElement("div"); t.className = "t"; t.textContent = item.text; t.title = item.text;
+    const s = document.createElement("div"); s.className = "s"; s.textContent = `${item.voice} · ${item.duration ? item.duration.toFixed(1) + "s" : ""} · ${item.at.toLocaleTimeString()}`;
+    const a = document.createElement("div"); a.className = "a";
+    const play = document.createElement("button"); play.className = "btn secondary small"; play.textContent = "▶"; play.onclick = () => { $("audio").src = item.url; $("audio").play(); };
+    const dl = document.createElement("a"); dl.className = "btn secondary small"; dl.textContent = "⬇"; dl.href = item.url; dl.download = item.file;
+    a.append(play, dl); row.append(t, a, s); h.appendChild(row);
+  }
+}
+
+// ---------------------------------------------------------------- API examples
+function renderApi() {
+  const base = location.origin + "/v1", key = apiKey() || "not-needed", v = $("voice").value || "vox-aura-studio";
+  $("baseUrl").textContent = base;
+  const ids = $("voiceIds"); ids.textContent = "";
+  for (const voice of state.voices) { const c = document.createElement("code"); c.textContent = voice.id; c.title = voice.name; c.style.marginRight = "6px"; c.style.display = "inline-block"; c.style.marginBottom = "4px"; ids.appendChild(c); }
+  setCode("exCurl", `curl ${base}/audio/speech \\\n  -H "Authorization: Bearer ${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"voxcpm2","voice":"${v}","input":"Hello from my own computer! [excited] It works!","response_format":"mp3"}' \\\n  --output hello.mp3`);
+  setCode("exPy", `from openai import OpenAI\n\nclient = OpenAI(base_url="${base}", api_key="${key}")\nwith client.audio.speech.with_streaming_response.create(\n    model="voxcpm2",\n    voice="${v}",\n    input="Hello from my own computer!",\n    response_format="mp3",\n    extra_body={"emotion": "cheerful"},\n) as response:\n    response.stream_to_file("hello.mp3")`);
+  setCode("exJs", `const res = await fetch("${base}/audio/speech", {\n  method: "POST",\n  headers: { "Content-Type": "application/json", Authorization: "Bearer ${key}" },\n  body: JSON.stringify({ model: "voxcpm2", voice: "${v}", input: "Hello!", response_format: "mp3" }),\n});\nnew Audio(URL.createObjectURL(await res.blob())).play();`);
+}
+function setCode(id, text) {
+  const pre = $(id); pre.textContent = text;
+  const b = document.createElement("button"); b.className = "btn secondary small copy"; b.textContent = "Copy";
+  b.onclick = () => navigator.clipboard.writeText(text).then(() => toast("Copied"), () => toast("Copy failed", true)); pre.appendChild(b);
+}
+
+// ---------------------------------------------------------------- start
+showTab(localStorage.getItem("voxcpm_tab") || "speak");
+pollHealth(); setInterval(pollHealth, 3000);
+refreshVoices();
+</script>
+</body>
+</html>
