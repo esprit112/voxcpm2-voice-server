@@ -319,7 +319,7 @@ Development: `python -m unittest discover -s tests -v` runs in under a second wi
 
 ## Licence & responsible use
 
-The code is under the [MIT](LICENSE) licence. The VoxCPM2 model and the `voxcpm` package are © OpenBMB,
+The code is under the [MIT](LICENSE) licence (see also [NOTICE](NOTICE)). The VoxCPM2 model and the `voxcpm` package are © OpenBMB,
 under Apache-2.0. The preset voices were *designed* by the model from text descriptions; they are not
 recordings of real people.
 
