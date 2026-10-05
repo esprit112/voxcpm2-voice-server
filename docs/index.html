@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoxCPM2 Voice Server: audio samples</title>
+<meta name="description" content="Private, studio-quality text-to-speech on your own computer. Listen to samples generated locally.">
+<style>
+  :root { color-scheme: light dark; --bg:#0f1115; --fg:#e8eaed; --muted:#9aa0a6; --card:#181b21; --line:#2a2e36; --accent:#7c9cff; }
+  @media (prefers-color-scheme: light) { :root { --bg:#fafbfc; --fg:#1f2328; --muted:#59636e; --card:#fff; --line:#d8dee4; --accent:#2f5bea; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:40px 20px 60px; }
+  h1 { margin:0 0 6px; font-size:1.8rem; }
+  p.lead { color:var(--muted); margin:0 0 28px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin:0 0 16px; }
+  .card h2 { margin:0 0 2px; font-size:1.1rem; }
+  .card .what { color:var(--muted); font-size:.92rem; margin:0 0 10px; }
+  .card code { display:block; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:.85rem; margin:0 0 12px; white-space:pre-wrap; }
+  audio { width:100%; }
+  img { max-width:100%; border-radius:10px; border:1px solid var(--line); margin:8px 0 24px; }
+  a { color:var(--accent); }
+  footer { color:var(--muted); font-size:.9rem; margin-top:28px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎙️ VoxCPM2 Voice Server</h1>
+  <p class="lead">Private, studio-quality text-to-speech that runs on your own computer. Every clip below was generated locally on an RTX 3060. Nothing was sent to a cloud service.</p>
+
+  <img src="screenshots/01-speak.png" alt="The Speak tab of the web app">
+
+  <div class="card" id="01">
+    <h2>Aura Studio</h2>
+    <p class="what">Natural conversational delivery, with a pause marker.</p>
+    <code>Hi! I'm Aura, running entirely on your own computer. [pause:400ms] No cloud, no subscription, and nothing ever leaves this machine.</code>
+    <audio controls preload="none" src="samples/01-aura-studio-intro.mp3"></audio>
+  </div>
+
+  <div class="card" id="02">
+    <h2>Solas British</h2>
+    <p class="what">Inline emotion markers: calm → excited → whisper.</p>
+    <code>[calm] Welcome back. [pause:500ms] [excited] Today we finally ship version one! [whisper] Don't tell anyone just yet.</code>
+    <audio controls preload="none" src="samples/02-solas-british-emotion.mp3"></audio>
+  </div>
+
+  <div class="card" id="03">
+    <h2>Vesper Noir</h2>
+    <p class="what">Low, dramatic narration.</p>
+    <code>[dramatic] The rain hadn't stopped for three days. [pause:600ms] [calm] And neither had the phone calls.</code>
+    <audio controls preload="none" src="samples/03-vesper-noir.mp3"></audio>
+  </div>
+
+  <footer>
+    <a href="https://github.com/esprit112/voxcpm2-voice-server">← Back to the project on GitHub</a>
+  </footer>
+</main>
+</body>
+</html>

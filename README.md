@@ -20,13 +20,13 @@ voice design from a text description, and voice cloning from a few seconds of au
   <img src="docs/screenshots/01-speak.png" alt="The Speak tab: type text with emotion markers, pick a voice, press Speak" width="900">
 </p>
 
-**🔊 Listen** (click a file, GitHub plays it in the browser):
+**🔊 [Listen to all samples with in-browser players →](https://esprit112.github.io/voxcpm2-voice-server/)**
 
 | Voice | What it shows | Sample |
 |---|---|---|
-| Aura Studio | Natural conversational delivery, with a pause marker | [▶ 01-aura-studio-intro.mp3](docs/samples/01-aura-studio-intro.mp3) |
-| Solas British | Emotion markers: `[calm]` → `[excited]` → `[whisper]` | [▶ 02-solas-british-emotion.mp3](docs/samples/02-solas-british-emotion.mp3) |
-| Vesper Noir | Low, dramatic narration | [▶ 03-vesper-noir.mp3](docs/samples/03-vesper-noir.mp3) |
+| Aura Studio | Natural conversational delivery, with a pause marker | [▶ Play](https://esprit112.github.io/voxcpm2-voice-server/#01) · [mp3](docs/samples/01-aura-studio-intro.mp3) |
+| Solas British | Emotion markers: `[calm]` → `[excited]` → `[whisper]` | [▶ Play](https://esprit112.github.io/voxcpm2-voice-server/#02) · [mp3](docs/samples/02-solas-british-emotion.mp3) |
+| Vesper Noir | Low, dramatic narration | [▶ Play](https://esprit112.github.io/voxcpm2-voice-server/#03) · [mp3](docs/samples/03-vesper-noir.mp3) |
 
 The exact text behind each clip:
 
