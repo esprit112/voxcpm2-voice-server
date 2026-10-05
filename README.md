@@ -14,6 +14,44 @@ voice design from a text description, and voice cloning from a few seconds of au
 - 🔒 **Offline and private**: after the one-time model download nothing leaves your machine
 - 🧰 One-click installers, a `doctor` that explains problems in plain English, Docker, a systemd service, and launchd support
 
+## See it, hear it
+
+<p align="center">
+  <img src="docs/screenshots/01-speak.png" alt="The Speak tab: type text with emotion markers, pick a voice, press Speak" width="900">
+</p>
+
+**🔊 Listen** (click a file, GitHub plays it in the browser):
+
+| Voice | What it shows | Sample |
+|---|---|---|
+| Aura Studio | Natural conversational delivery, with a pause marker | [▶ 01-aura-studio-intro.mp3](docs/samples/01-aura-studio-intro.mp3) |
+| Solas British | Emotion markers: `[calm]` → `[excited]` → `[whisper]` | [▶ 02-solas-british-emotion.mp3](docs/samples/02-solas-british-emotion.mp3) |
+| Vesper Noir | Low, dramatic narration | [▶ 03-vesper-noir.mp3](docs/samples/03-vesper-noir.mp3) |
+
+The exact text behind each clip:
+
+1. `Hi! I'm Aura, running entirely on your own computer. [pause:400ms] No cloud, no subscription, and nothing ever leaves this machine.`
+2. `[calm] Welcome back. [pause:500ms] [excited] Today we finally ship version one! [whisper] Don't tell anyone just yet.`
+3. `[dramatic] The rain hadn't stopped for three days. [pause:600ms] [calm] And neither had the phone calls.`
+
+All three were generated locally on an RTX 3060. Nothing was sent to a cloud service.
+
+<details>
+<summary><b>More screenshots</b> (voice library, API &amp; agents, system)</summary>
+
+<br>
+
+**Voice library**: 8 presets, plus voices you design or clone.
+<img src="docs/screenshots/02-voices.png" alt="Voice library with 8 preset voices and designed voices" width="900">
+
+**API &amp; Agents**: OpenAI-compatible endpoint with copy-paste examples.
+<img src="docs/screenshots/03-api-and-agents.png" alt="OpenAI-compatible API page with curl and Python examples" width="900">
+
+**System**: GPU/CPU in use, VRAM, speed statistics.
+<img src="docs/screenshots/04-system.png" alt="System tab showing device, VRAM and real-time factor" width="900">
+
+</details>
+
 ---
 
 ## Contents
